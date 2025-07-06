@@ -44,8 +44,12 @@ async function getAnswerForToday() {
     if(findCityState.length === 0) {
         console.log('array empty')
         alert('ummm check the spelling on your state please')
+        document.getElementById('state').innerHTML = '';
+        document.getElementById('state').style.borderColor = '#D62828'
         return;
-    }  
+    } else {
+        document.getElementById("state").style.borderColor = 'black'
+    }
     const now = new Date().getDate();
     const latitude = findCityState[0].latitude;
     const longitude = findCityState[0].longitude;
