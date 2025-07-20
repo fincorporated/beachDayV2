@@ -55,8 +55,7 @@ label {
 }
 
 #inputFields {
-    visibility: hidden;
-    display: flex;
+    display: none;
     flex-direction: row;
     align-items: flex-end;
     margin: auto;
@@ -98,3 +97,62 @@ button {
     justify-content: center;
     column-gap: 8px;
 }
+
+#activityAnswers {
+    display: flex;
+    flex-direction: row;
+}
+
+.activityContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-content: start;
+    width: 100%;
+
+    /* border: solid red; */
+}
+
+.titleContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+
+#kiteAnswer {
+    visibility: hidden;
+}
+
+#tanningAnswer {
+    visibility: hidden;
+}
+
+#kiteBtn {
+    width: fit-content;
+    height: fit-content;
+}
+
+#kite {
+    display: none;
+}
+
+#tanningBtn {
+    width: fit-content;
+    height: fit-content;
+}
+
+#tanning {
+    display: none;    
+}
+
+#swimming {
+    display: none;
+}
+
+#swimBtn {
+    width: fit-content;
+    height: fit-content;
+}
+
+

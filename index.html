@@ -3,6 +3,7 @@
     <head>
         <title>Beach Day?</title>
         <link href="beachstyle.css" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     </head>
     <body>
         <div id="app">
@@ -17,7 +18,7 @@
             <div id="inputFields">
                 <div>
                     <label for="city">City</label>
-                    <input type="text" id="city" placeholder="Marblehead"/>                    
+                    <input type="text" id="city" placeholder="City"/>                    
                 </div>
                 <div>
                     <label for="state">State</label>
@@ -28,6 +29,36 @@
             <h3 id="answer"></h3>            
             <table id="today">
             </table>
+            <div id="activityAnswers">
+                <div class="activityContainer" id="kite">
+                    <div class="titleContainer">
+                        <button id="kiteBtn">
+                            <i class="material-symbols-outlined">family_link</i>
+                        </button>
+                        <h3>Kite Flying</h3>
+                    </div>
+                    <p class="answer" id="kiteAnswer"></p>                        
+                </div>
+                <div class="activityContainer" id="tanning">
+                    <div class="titleContainer">
+                        <button id="tanningBtn">
+                            <i class="material-symbols-outlined">nest_sunblock</i>
+                        </button>   
+                        <h3>Tanning</h3>                     
+                    </div>
+                    <p class="answer" id="tanningAnswer"></p>
+                </div>
+                <div class="activityContainer" id="swimming">
+                    <div class="titleContainer">
+                        <button id="swimBtn">
+                            <i class="material-symbols-outlined">family_link</i>
+                        </button>
+                        <h3>Swimming</h3>
+                    </div>
+                    <p class="answer" id="swimAnswer"></p>                        
+                </div>
+            
+            </div>
 
             <script src="script.js"></script>
         </div>
