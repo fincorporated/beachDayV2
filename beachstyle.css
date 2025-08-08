@@ -3,6 +3,20 @@
     box-sizing: border-box;
 }
 
+#app {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    row-gap: 10px;
+    /* grid-template-columns: auto; */
+    width: 75%;
+    margin: auto;
+}
+
+table {
+    border-collapse: collapse;
+}
+
 table, th, td {
     border-style: solid;
 }
@@ -12,7 +26,7 @@ th, td {
     text-align: center;
 }
 
-table {
+#today {
     visibility: hidden;
     border-collapse: collapse;
 }
@@ -65,15 +79,6 @@ label {
     margin: 5px;
 }
 
-#app {
-    display: grid;
-    justify-content: center;
-    row-gap: 10px;
-    grid-template-columns: auto;
-    width: 75%;
-    margin: auto;
-}
-
 button {
     display: flex;
     flex-direction: row;
@@ -121,11 +126,11 @@ button {
 }
 
 #kiteAnswer {
-    visibility: hidden;
+    display: none;
 }
 
 #tanningAnswer {
-    visibility: hidden;
+    display: none;
 }
 
 #kiteBtn {
@@ -155,4 +160,11 @@ button {
     height: fit-content;
 }
 
+#swimAnswer {
+    display: none;
+}
+
+#forecastBtn {
+    visibility: hidden;
+}
 

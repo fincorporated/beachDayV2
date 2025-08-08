@@ -7,6 +7,8 @@ document.getElementById('city').addEventListener('input', locationInputChange);
 
 document.getElementById('kiteBtn').addEventListener('click', revealKiteAnswer)
 document.getElementById('tanningBtn').addEventListener('click', revealTanningAnswer)
+document.getElementById('swimBtn').addEventListener('click', revealSwimAnswer)
+document.getElementById('forecastBtn').addEventListener('click', getBeachForecast)
 
 function locationInputChange() {
     if (this.value === "") {
@@ -77,7 +79,9 @@ async function getCoordinates(position) {
             document.getElementById('today').deleteRow(0);
         }
     }
-    await getAnswerForToday(latitude, longitude);    
+    await getAnswerForToday(latitude, longitude);
+    establishCoordinates(latitude, longitude);
+    return (latitude, longitude);    
 }
 
 async function goButton() {
@@ -94,6 +98,7 @@ async function goButton() {
         }
     }    
     await getAnswerForToday(latitude, longitude);
+    establishCoordinates(latitude, longitude)
 }
 
 async function getNWSURL(latitude, longitude) {
@@ -104,6 +109,7 @@ async function getNWSURL(latitude, longitude) {
     return gridData.properties.forecastHourly
 }
 
+let ultimateTideStationID;
 async function getTides(latitude, longitude) {
     const stationsURL = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions&units=english';
     const stationResponse = await fetch(stationsURL);
@@ -122,15 +128,18 @@ async function getTides(latitude, longitude) {
         } else {
             const subtractionLat = matchingLatLong.map((object) => object.lat - latitude);
             const subtractionLng = matchingLatLong.map((object) => object.lng - longitude);
-        let tideIndex;
+            let tideIndex;
             if (latitude.toString().length > longitude.toString().length) {
                 tideIndex = subtractionLat.indexOf(Math.min(...subtractionLat))
             } else {
                 tideIndex = subtractionLng.indexOf(Math.min(...subtractionLng))
             }
             stationID = matchingLatLong[tideIndex].id
+            
         }
+        ultimateTideStationID = stationID
         const testtideURL = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&station=${stationID}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=DataAPI_Sample&format=json`
+        // console.log(ultimateTideStationID)
         const testtideResponse = await fetch(testtideURL);
         const testtideData = await testtideResponse.json();
         const tidesArray = testtideData.predictions
@@ -139,8 +148,28 @@ async function getTides(latitude, longitude) {
 
 }
 
+async function getWaterTempStation(latitude, longitude) {
+    const stationListUrl = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=watertemp";
+    const response = await fetch(stationListUrl);
+    const data = await response.json();
+    const stationsCloseInLng = data.stations.filter((station) => Math.round(station.lng)  === Math.round(longitude));
+    const differenceInLat = stationsCloseInLng.map((station) => Math.abs(latitude - station.lat));
+    const stationIndex = differenceInLat.indexOf(Math.min(...differenceInLat));
+    // console.log(stationsCloseInLng);
+    // console.log(stationIndex);
+    // console.log(stationsCloseInLng[stationIndex].id);
+    const stationID = stationsCloseInLng[stationIndex].id;
+    const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=${stationID}&product=water_temperature&datum=STND&time_zone=gmt&units=english&format=json`
+    const waterResponse = await fetch(url);
+    const waterTempData = await waterResponse.json();
+    // console.log(waterTempData)
+    const waterTemperature = waterTempData.data[0].v;
+    return waterTemperature;
+}
+
 async function addTides(latitude, longitude, periods, row, i) {
     const tidesArray = await getTides(latitude, longitude);
+    // console.log(tidesArray)
     if (tidesArray === null) {
         return
     }
@@ -165,7 +194,8 @@ async function getUV(latitude, longitude, periods) {
     const data = await response.json();
     const relevantHistory = data.history.filter((object) => (new Date(object.time.split('Z')[0]).getHours() >= new Date(periods[0].startTime).getHours()) && (new Date(object.time.split('Z')[0]).getDate() === new Date(periods[0].startTime).getDate()) )
     // console.log(url)
-    // console.log(relevantHistory)
+    // console.log(data.history)
+    // console.log(data.forecast)
     // console.log(data.now)
     const relaventForecast = data.forecast.slice(0,12)
     const UVArray = [...relevantHistory, data.now, ...relaventForecast]
@@ -262,6 +292,7 @@ async function getAnswerForToday(latitude, longitude) {
         document.getElementById('swimming').style.display = 'block';        
     }
     
+    document.getElementById('forecastBtn').style.visibility = 'visible'
 
     function getTanningAnswer() {
         const safeTanningArray = UVArray.filter((object) => (object.uvi > 3 && object.uvi < 6) && (sunTimes.map((object) => object.time).includes(new Date(object.time.split('Z')[0]).toLocaleTimeString())) )
@@ -300,6 +331,26 @@ async function getAnswerForToday(latitude, longitude) {
         
     }
     getKiteFlyingAnswer();
+
+    const waterTemperature = await getWaterTempStation(latitude, longitude)
+    
+    function getSwimmingAnswer() {
+        // console.log(waterTemperature);
+        let swimmingAnswer;
+        if (waterTemperature > 79) {
+            swimmingAnswer = `Great day for swimming! Check your local beach advisories, but the water temperature near you should be around ${waterTemperature}`
+        } else if (waterTemperature > 70) {
+            swimmingAnswer = `Depending on your tolerance it might seem a little chilly, but with the water at ${waterTemperature} you should be good to go.`
+        } else {
+            swimmingAnswer = `If you're very hot I guess! But ${waterTemperature} is pretty cold to most people, so I wouldn't recommend it`
+        }
+
+        document.getElementById('swimAnswer').innerHTML = swimmingAnswer
+    }
+
+    getSwimmingAnswer();
+
+    return periods;
     
 }
 
@@ -330,23 +381,186 @@ function getActualAnswer(maxTempTimes, sunTimes) {
 }
 
 function revealKiteAnswer() {
-    if (document.getElementById('kiteAnswer').style.visibility === 'visible') {
-        console.log('true')
-        document.getElementById('kiteAnswer').style.visibility = 'hidden';
+    if (document.getElementById('kiteAnswer').style.display === 'block') {
+        document.getElementById('kiteAnswer').style.display = 'none';
     } else {
-        console.log('false')
-        document.getElementById('kiteAnswer').style.visibility = 'visible';        
+        document.getElementById('kiteAnswer').style.display = 'block';        
     }
-
-    
 }
 
 function revealTanningAnswer() {
-    if (document.getElementById('tanningAnswer').style.visibility === 'visible') {
+    if (document.getElementById('tanningAnswer').style.display === 'block') {
 
-        document.getElementById('tanningAnswer').style.visibility = 'hidden';
+        document.getElementById('tanningAnswer').style.display = 'none';
     } else {
-        document.getElementById('tanningAnswer').style.visibility = 'visible';    
+        document.getElementById('tanningAnswer').style.display = 'block';    
     }
     
+}
+
+function revealSwimAnswer() {
+    if (document.getElementById('swimAnswer').style.display === 'block') {
+
+        document.getElementById('swimAnswer').style.display = 'none';
+    } else {
+        document.getElementById('swimAnswer').style.display = 'block';    
+    }
+    
+}
+
+let ultimateLatidue;
+let ultimateLongitude;
+
+function establishCoordinates(latitude, longitude) {
+    ultimateLatidue = latitude;
+    ultimateLongitude = longitude;
+}
+
+async function getBeachForecast() {
+    const nwsData = await fetch(`https://api.weather.gov/points/${ultimateLatidue},${ultimateLongitude}`)
+    const nwsJson = await nwsData.json();
+    const forecastURL = nwsJson.properties.forecastHourly
+    const forecastData = await fetch(forecastURL);
+    const forecastJson = await forecastData.json();
+    // console.log(forecastJson.properties.periods);
+    const periods = forecastJson.properties.periods;
+    // today is day 0, tomorrow is day 1
+
+    const dayOne = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+1)
+    // console.log(dayOne)
+
+    const dayTwo = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+2)
+    const dayThree = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+3)
+    const dayFour = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+4)
+    const dayFive = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+5)
+    const daySix = periods.filter((object) => new Date(object.startTime).getDate() === new Date().getDate()+6)
+    // console.log(daySix)
+
+    const fullForecastArray = [dayOne, dayTwo, dayThree, dayFour, dayFive, daySix]
+    //this is the array of each days' array of hourly forecasts, it gets forEache-ed at the end to send each array through the createTable funciton, which in turn sends the array through the createForecast function
+    console.log('fullForecastArray')
+    console.log(fullForecastArray)
+
+    const UVurl = `https://currentuvindex.com/api/v1/uvi?latitude=${ultimateLatidue}&longitude=${ultimateLongitude}`;
+    const UVresponse = await fetch(UVurl);
+    const UVdata = await UVresponse.json();
+    const titles = ['Time', 'Temperature', 'Forecast', 'Precipitation', 'UV', 'Wind Speed', 'Tides']    
+
+
+    async function getForecastTides(dayArray) {
+        const startTime = new Date(dayArray[0].startTime);
+        const year = startTime.getFullYear().toString();
+        const month = (startTime.getMonth()+1).toString().padStart(2, "0");
+        const day = startTime.getDate().toString().padStart(2, "0")
+        const beginDate =  year + month + day
+        // console.log(beginDate)
+        // console.log(startTime)
+        const tidesurl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${beginDate}&range=24&station=${ultimateTideStationID}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=DataAPI_Sample&format=json`
+        // console.log(tidesurl)
+        const tidesResponse = await fetch(tidesurl);
+        const tidesForecastData = await tidesResponse.json();
+        console.log(tidesForecastData)
+        return tidesForecastData;
+    }
+    
+    function createForecast(nwsForecast) {
+        // console.log(nwsForecast)
+        const daysUV = UVdata.forecast.filter((object) => (new Date(object.time.split('Z')[0]).getDate() === new Date(nwsForecast[0].startTime).getDate()))
+        console.log('date:')
+        console.log((new Date(nwsForecast[0].startTime).getDate()))
+        console.log('daysUV:')
+        console.log(daysUV)
+
+        let fullDayForecast = [];
+        for (i = 0; i < nwsForecast.length; i++) {
+            let hourlyUV;
+            console.log('uv:')
+            console.log(daysUV[i])
+            if (daysUV[i]) {
+                hourlyUV = daysUV[i].uvi
+            } else {
+                hourlyUV = '?'
+            }
+
+            const hourlyForecast = [
+                new Date(nwsForecast[i].startTime).toLocaleTimeString(),
+                nwsForecast[i].temperature + '&deg',
+                nwsForecast[i].shortForecast,
+                nwsForecast[i].probabilityOfPrecipitation.value,
+                hourlyUV,
+                nwsForecast[i].windSpeed
+            ]
+
+            fullDayForecast.push(hourlyForecast)
+        }
+        return fullDayForecast
+    }
+    
+    async function createTable(dayArray) {
+        const tidesForecastData = await getForecastTides(dayArray);        
+        const arrayOfHourlyForecasts = createForecast(dayArray);
+
+
+        console.log('createTable function, dayArray')
+        console.log(dayArray)
+
+        console.log(tidesForecastData)
+
+        const tidesTimesArray = tidesForecastData.predictions.map((object) => new Date(object.t).getHours())
+        console.log(tidesTimesArray)
+        
+        const table = document.createElement('table');
+        const headingTitlesRow = document.createElement('tr');
+        titles.forEach((item) => {
+            const cell = document.createElement('th');
+            cell.innerHTML = item;
+            headingTitlesRow.appendChild(cell);
+        }) 
+        table.append(headingTitlesRow);
+
+        for (i = 0; i < arrayOfHourlyForecasts.length; i++) {
+            const newRow = document.createElement('tr');
+            arrayOfHourlyForecasts[i].forEach((item => {
+                const newCell = document.createElement('td');
+                newCell.innerHTML = item;
+                newRow.append(newCell);
+            }))
+
+            console.log(dayArray[i])
+            if (tidesTimesArray.includes(new Date(dayArray[i].startTime).getHours())) {
+                console.log('tide time')
+                let tide;
+                if (tidesForecastData.predictions[tidesTimesArray.indexOf(new Date(dayArray[i].startTime).getHours())].type === 'L') {
+                    tide = 'Low tide'
+                } else if (tidesForecastData.predictions[tidesTimesArray.indexOf(new Date(dayArray[i].startTime).getHours())].type === 'H') {
+                    tide = "High tide"
+                } else {
+                    tide = ""
+                }
+                console.log(tide)
+                const tideCell = document.createElement('td');
+                tideCell.innerHTML = tide;
+                newRow.append(tideCell);
+            }
+
+            table.append(newRow);
+
+        }
+
+        const dateHeading = document.createElement('h2')
+        const daysDate = new Date(dayArray[0].startTime).toDateString();
+        dateHeading.innerHTML = daysDate
+
+
+
+        document.getElementById('app').append(dateHeading)
+
+        document.getElementById('app').append(table);
+    }
+
+    fullForecastArray.forEach(async (dayArray) => createTable(dayArray))
+
+    // for (i = 0; i < fullForecastArray.length; i++) {
+    //     await createTable(fullForecastArray[i])
+    // }
 }
